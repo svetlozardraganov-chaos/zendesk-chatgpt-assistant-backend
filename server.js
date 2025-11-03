@@ -54,6 +54,13 @@ app.use(
 // Handle preflights
 app.options("*", cors());
 
+// TEMP: log the origin and the allowlist to Render logs
+console.log("ALLOWED_ORIGINS:", ALLOWED_ORIGINS);
+app.use((req, _res, next) => {
+  console.log("REQ ORIGIN:", req.headers.origin || "none", req.method, req.path);
+  next();
+});
+
 // ====== Health check ======
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
