@@ -23,17 +23,28 @@ app.use(bodyParser.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use(
   cors({
-    origin: (origin, cb) => {
-      // Permit Zendesk iframe origin or localhost dev; allow empty origin for curl
-      const ok =
-        !origin ||
-        origin === ZENDESK_ORIGIN ||
-        origin === "http://localhost:3000";
-      cb(null, ok ? true : false);
-    },
+    origin: true,          // reflect the request Origin header
     credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
   })
 );
+app.options("*", cors());
+
+
+// app.use(
+//   cors({
+//     origin: (origin, cb) => {
+//       // Permit Zendesk iframe origin or localhost dev; allow empty origin for curl
+//       const ok =
+//         !origin ||
+//         origin === ZENDESK_ORIGIN ||
+//         origin === "http://localhost:3000";
+//       cb(null, ok ? true : false);
+//     },
+//     credentials: true,
+//   })
+// );
 
 // Health check
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
