@@ -75,7 +75,7 @@ app.post("/generate", async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       model: OPENAI_MODEL,
-      temperature: 0.2,
+      // temperature: 0.2,
       messages: [
         {
           role: "system",
