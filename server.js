@@ -1,4 +1,3 @@
-
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -8,8 +7,7 @@ const app = express();
 
 // ====== Config via env ======
 const PORT = process.env.PORT || 10000;
-const ZENDESK_ORIGIN = process.env.ZENDESK_ORIGIN || ""; // e.g. https://yourcompany.zendesk.com
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 if (!OPENAI_API_KEY) {
@@ -21,32 +19,42 @@ if (!OPENAI_API_KEY) {
 app.use(bodyParser.json({ limit: "1mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "1mb" }));
 
+// Always vary on Origin so caches do the right thing
+app.use((req, res, next) => {
+  res.vary("Origin");
+  next();
+});
+
+// ====== CORS allowlist (sandbox + prod) ======
+const listFromEnv = (val) =>
+  (val || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const ALLOWED_ORIGINS = [
+  ...listFromEnv(process.env.ZENDESK_ORIGINS), // comma-separated
+  ...listFromEnv(process.env.ZENDESK_ORIGIN),  // single value still supported
+  "http://localhost:3000",                     // optional local dev
+];
+
 app.use(
   cors({
-    origin: true,          // reflect the request Origin header
+    origin: (origin, cb) => {
+      // allow curl/Postman (no Origin) and any explicitly allowed origin
+      const ok = !origin || ALLOWED_ORIGINS.includes(origin);
+      cb(null, ok ? origin || true : false);
+    },
     credentials: true,
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
   })
 );
+
+// Handle preflights
 app.options("*", cors());
 
-
-// app.use(
-//   cors({
-//     origin: (origin, cb) => {
-//       // Permit Zendesk iframe origin or localhost dev; allow empty origin for curl
-//       const ok =
-//         !origin ||
-//         origin === ZENDESK_ORIGIN ||
-//         origin === "http://localhost:3000";
-//       cb(null, ok ? true : false);
-//     },
-//     credentials: true,
-//   })
-// );
-
-// Health check
+// ====== Health check ======
 app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
 // ====== OpenAI client ======
